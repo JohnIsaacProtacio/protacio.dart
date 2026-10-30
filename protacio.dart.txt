@@ -1,0 +1,153 @@
+abstract class Borrowable {
+  void borrowItem();
+  void returnItem();
+}
+
+mixin Loggable {
+  void logTransaction(String action, String title) {
+    print('[LOG] ${DateTime.now().toString().split('.')[0]} - Action: $action | Item: "$title"');
+  }
+}
+
+class Book {
+  String title;
+  String author;
+  double _price;
+  bool _isAvailable;
+
+  Book(this.title, this.author, double initialPrice, [bool isAvailable = true])
+      : _price = initialPrice,
+        _isAvailable = isAvailable;
+
+  double get price => _price;
+  set price(double value) => _price = value;
+
+  bool get isAvailable => _isAvailable;
+  set isAvailable(bool value) => _isAvailable = value;
+
+  void applyDiscount(double percent) {
+    if (percent > 0 && percent <= 100) {
+      _price -= _price * (percent / 100);
+      print('Applied a $percent% discount to "$title". New price: \$${_price.toStringAsFixed(2)}');
+    } else {
+      print('Invalid discount percentage.');
+    }
+  }
+
+  void displayInfo() {
+    String status = _isAvailable ? 'Available' : 'Checked Out';
+    print('Title: $title | Author: $author | Price: \$${_price.toStringAsFixed(2)} | Status: $status');
+  }
+}
+
+class PrintedBook extends Book with Loggable implements Borrowable {
+  int pageCount;
+  String shelfLocation;
+
+  PrintedBook(
+    String title,
+    String author,
+    double price,
+    this.pageCount,
+    this.shelfLocation, [
+    bool isAvailable = true,
+  ]) : super(title, author, price, isAvailable);
+
+  @override
+  void borrowItem() {
+    if (isAvailable) {
+      isAvailable = false;
+      logTransaction('BORROW_PHYSICAL', title);
+      print('Successfully checked out physical copy of "$title" from Shelf $shelfLocation.');
+    } else {
+      print('Sorry, "$title" is currently unavailable on Shelf $shelfLocation.');
+    }
+  }
+
+  @override
+  void returnItem() {
+    isAvailable = true;
+    logTransaction('RETURN_PHYSICAL', title);
+    print('Returned physical copy of "$title" to Shelf $shelfLocation.');
+  }
+
+  @override
+  void displayInfo() {
+    String status = isAvailable ? 'Available' : 'Checked Out';
+    print('[PHYSICAL BOOK] Title: "$title" | Author: $author | Pages: $pageCount | Shelf: $shelfLocation | Price: \$${price.toStringAsFixed(2)} | Status: $status');
+  }
+}
+
+class EBook extends Book with Loggable implements Borrowable {
+  double fileSizeMB;
+  String downloadUrl;
+
+  EBook(
+    String title,
+    String author,
+    double price,
+    this.fileSizeMB,
+    this.downloadUrl, [
+    bool isAvailable = true,
+  ]) : super(title, author, price, isAvailable);
+
+  @override
+  void borrowItem() {
+    if (isAvailable) {
+      logTransaction('DIGITAL_ACCESS', title);
+      print('Access granted for digital copy of "$title". Download link sent: $downloadUrl');
+    } else {
+      print('Digital access for "$title" is temporarily suspended.');
+    }
+  }
+
+  @override
+  void returnItem() {
+    logTransaction('DIGITAL_LICENSE_EXPIRED', title);
+    print('Digital access license for "$title" has expired/returned.');
+  }
+
+  @override
+  void applyDiscount(double percent) {
+    double effectivePercent = percent + 5;
+    super.applyDiscount(effectivePercent);
+  }
+
+  @override
+  void displayInfo() {
+    print('[E-BOOK] Title: "$title" | Author: $author | File Size: ${fileSizeMB}MB | Price: \$${price.toStringAsFixed(2)} | Link: $downloadUrl');
+  }
+}
+
+void main() {
+  print('=== INITIAL LIBRARY CATALOG ===\n');
+
+  PrintedBook book1 = PrintedBook('1984', 'George Orwell', 15.99, 328, 'A-12');
+  EBook book2 = EBook('The Hobbit', 'J.R.R. Tolkien', 22.50, 4.5, 'https://library.org/dl/hobbit');
+  PrintedBook book3 = PrintedBook('Clean Code', 'Robert C. Martin', 35.00, 464, 'C-04');
+
+  List<Book> libraryCatalog = [book1, book2, book3];
+
+  for (var book in libraryCatalog) {
+    book.displayInfo();
+  }
+
+  print('\n=== TESTING OOP FEATURES (POLYMORPHISM, MIXINS, INTERFACES) ===\n');
+
+  book1.applyDiscount(10); 
+  book2.applyDiscount(10); 
+
+  print('');
+
+  book1.borrowItem();
+  book2.borrowItem();
+
+  print('');
+
+  book1.returnItem();
+
+  print('\n=== UPDATED CATALOG ===\n');
+  for (var book in libraryCatalog) {
+    book.displayInfo();
+  }
+}
